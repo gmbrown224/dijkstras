@@ -1,4 +1,4 @@
-//Graham Brown
+//Graham Brown, Hasan Tiwana
 //Project 4
 //This lab takes a board and finds the cheapest route between two points
 
@@ -21,9 +21,9 @@ class Dijk {
 		int c;
 		int start;
 		int goal;
-
-		int recurDijk(int index, int target, int moves);
 };
+
+//vector of vector with a node class
 
 Dijk::Dijk(int argc, char **argv) {
 
@@ -65,13 +65,8 @@ Dijk::Dijk(int argc, char **argv) {
 int main(int argc, char *argv[]) {
 
 	Dijk *d = new Dijk(argc, argv);
+	(void) d;
 
     return 0;
 }
 
-int Dijk::recurDijk(int index, int target, int moves){
-
-
-
-	return board[index];
-}
