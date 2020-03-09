@@ -12,15 +12,36 @@
 
 using namespace std;
 
+class Node {
+	public:
+		int x;
+		int y;
+		int weight;
+		int distance;
+		char type;
+
+		bool visited;
+		Node *backedge;
+		vector<Node *> adj;
+		multimap<int, Node *>::iterator spot_in_mm; //from TA
+};
+//this has not been implemented at all, i only used my dijk class so far
+//but i was planning on using dijk class for mostly everything unless we
+//find an issue and we need the node class to solve the problem
+//set backedge of last to null
+
 class Dijk {
 	public: 
 		Dijk(int argc, char **argv);
 		vector<int> board;
+		vector<vector<Node *> > grid;
 		map<char, int> terrain;
 		int r;
 		int c;
 		int start;
 		int goal;
+
+		int recur_dijk(int index);
 };
 
 //vector of vector with a node class
@@ -65,8 +86,27 @@ Dijk::Dijk(int argc, char **argv) {
 int main(int argc, char *argv[]) {
 
 	Dijk *d = new Dijk(argc, argv);
-	(void) d;
+
+	for (size_t i = 0; i < d->board.size(); i++) { //testing to show board input is correct
+		cout << (char) d->board[i] << ' ';
+		if (((int) i % d->c) == (d->c - 1)) cout << '\n';
+	}
 
     return 0;
 }
 
+int Dijk::recur_dijk(int index){	//maybe use recursion? not sure, but my idea was
+									//to search down each direction and return the cheapest
+									//value. the parent will choose the cheaper option
+									//and then add it to themselves. the origin call will
+									//then make the final comparison to find overall cheapest
+	if (index == goal) return 0;
+
+	int hori = recur_dijk(index + 1);
+	int vert = recur_dijk(index + c);
+	map<char, int>::iterator ptr = terrain.find((char) board[index]);
+	if (hori < vert)
+		return ptr->second + hori;
+	else
+		return ptr->second + vert;
+}
