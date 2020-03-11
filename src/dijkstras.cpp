@@ -1,14 +1,12 @@
-//Graham Brown, Hasan Tiwana
-//Project 4
-//This lab takes a board and finds the cheapest route between two points
+// dijsktras.cpp
 
-#include <string>
-#include <iostream>
-#include <vector>
-#include <cstdio>
-#include <cstdlib>
 #include <map>
+#include <vector>
 #include <sstream>
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <cstdlib>
 
 using namespace std;
 
@@ -23,56 +21,65 @@ class Node {
 		bool visited;
 		Node *backedge;
 		vector<Node *> adj;
-		multimap<int, Node *>::iterator spot_in_mm; //from TA
+		multimap<int, Node *>::iterator spot_in_mm;
 };
-//this has not been implemented at all, i only used my dijk class so far
-//but i was planning on using dijk class for mostly everything unless we
-//find an issue and we need the node class to solve the problem
-//set backedge of last to null
 
 class Dijk {
-	public: 
-		Dijk(int argc, char **argv);
-		vector<int> board;
-		vector<vector<Node *> > grid;
+	public:
+		Dijk(int argc, char **argv, multimap<int, Node *> unvisited);
+		vector<Node *> grid;
 		map<char, int> terrain;
 		int r;
 		int c;
 		int start;
 		int goal;
-
-		int recur_dijk(int index);
 };
 
-//vector of vector with a node class
-
-Dijk::Dijk(int argc, char **argv) {
-
+Dijk::Dijk(int argc, char **argv, multimap<int, Node *> unvisited) {
+	
 	char type;
-	string read, hold;
 	int temp, val;
-	istringstream iss;
+	string line;
+	stringstream ss;
 
 	cin >> temp;
-	for (int i = 0; i < temp + 1; i++) {
-		getline(cin, read);
-		if (read != "") {
-			iss.clear();
-			iss.str(read);
-			iss >> type >> val;
-			terrain.insert(make_pair(type, val));
+	getline(cin, line);
+	for (int i = 0; i < temp; i++) {
+		getline(cin, line);
+		ss.clear();
+		ss.str(line);
+		while (ss >> type >> val)
+			terrain.insert({type, val});
+	}
+
+	cin >> r >> c;
+	for (int i = 0; i < r; i++) {
+		for (int j = 0; j < c; j++) {
+			Node *n = new Node();
+			n->x = i;
+			n->y = j;
+			n->distance = -1;
+			cin >> n->type;
+			n->weight = terrain.find(n->type)->second;
+			n->visited = false;
+			n->backedge = nullptr;
+			n->spot_in_mm = unvisited.end();
+			grid.push_back(n);
 		}
 	}
-	
-	cin >> temp >> val;
-	r = temp;
-	c = val;
-	board.resize(r * c);
-	for (int j = -1; j < r; j++) {
-		getline(cin, read);
-		if (read != "")
-			for (int q = 0; q < c; q++)
-				board[(j * c) + q] = read[2 * q];
+
+	for (int i = 0; i < (int) grid.size(); i++) {
+		if (i % c != (c-1))
+			grid[i]->adj.push_back(grid[i+1]);
+
+		if (i % c != 0)
+			grid[i]->adj.push_back(grid[i-1]);
+
+		if (i - c >= 0)
+			grid[i]->adj.push_back(grid[i-c]);
+
+		if (i + c < (int) grid.size())
+			grid[i]->adj.push_back(grid[i+c]);
 	}
 
 	cin >> temp >> val;
@@ -83,30 +90,77 @@ Dijk::Dijk(int argc, char **argv) {
 	return;
 }
 
+
 int main(int argc, char *argv[]) {
 
-	Dijk *d = new Dijk(argc, argv);
+	Dijk *d;
 
-	for (size_t i = 0; i < d->board.size(); i++) { //testing to show board input is correct
-		cout << (char) d->board[i] << ' ';
-		if (((int) i % d->c) == (d->c - 1)) cout << '\n';
+	multimap<int, Node *> path;
+	multimap<int, Node *>::iterator mit;
+	int dist, cost;
+	Node *n, *n2;
+
+	d = new Dijk(argc, argv, path);
+
+	// start at source node, set distance to 0 and add to multimap
+	n = d->grid[d->start];
+	n->distance = 0;
+	n->spot_in_mm = path.insert({n->distance, n});
+
+	while (path.size() > 0) {
+		// find node with smallest distance from source,
+		// remove from multimap and set visited to true
+		n = path.begin()->second;
+		path.erase(n->spot_in_mm);
+		n->spot_in_mm = path.end();
+		n->visited = true;
+
+		// for each unvisited adjacent node
+		for (int i = 0; i < (int) n->adj.size(); i++) {
+			n2 = n->adj[i];
+			if (n2->visited == false) {
+				// set distance of adjacent node
+				dist = n->distance + n2->weight;
+				// set new distance or replace with smaller path distance
+				if (n2->distance == -1 || dist < n2->distance) {
+					// remove n2 if it is in the multimap
+					mit = path.find(n2->distance);
+					while (mit != path.end()) {
+						if (mit->first == n2->distance && mit->second == n2)
+							path.erase(mit++);
+						else
+							mit++;
+					}
+					n2->distance = dist;
+					n2->backedge = n;
+					n2->spot_in_mm = path.insert({n2->distance, n2});
+				}
+			}
+		}
 	}
+
+	// should print output backwards (untested)
+	path.clear();
+	cost = 0;
+
+	n = d->grid[d->goal];
+	while (n != nullptr) {
+		if (n != d->grid[d->goal])
+			cost += n->weight;
+		path.insert({n->distance, n});
+		n = n->backedge;
+	}
+
+	cout << cost << endl;
+
+	for (mit = path.begin(); mit != path.end(); mit++)
+		cout << mit->second->x << ' ' << mit->second->y << endl;
+
+	for (int i = 0; i < (int) d->grid.size(); i++)
+		delete d->grid[i];
+
+	delete d;
 
     return 0;
 }
 
-int Dijk::recur_dijk(int index){	//maybe use recursion? not sure, but my idea was
-									//to search down each direction and return the cheapest
-									//value. the parent will choose the cheaper option
-									//and then add it to themselves. the origin call will
-									//then make the final comparison to find overall cheapest
-	if (index == goal) return 0;
-
-	int hori = recur_dijk(index + 1);
-	int vert = recur_dijk(index + c);
-	map<char, int>::iterator ptr = terrain.find((char) board[index]);
-	if (hori < vert)
-		return ptr->second + hori;
-	else
-		return ptr->second + vert;
-}
